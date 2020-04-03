@@ -41,14 +41,11 @@ class Api::V1::AccountsController < ApplicationController
 
   def check_balance
     calculate_balance
-    render json: @balance
+    render json: { 'balance': @balance }
   end
 
   def transfer_money
-    # @account_id = params[:source_account]
-    # byebug
     calculate_balance
-    
     if @balance.positive?
       @source_transfer = BalanceTransfer.new(amount: -(params[:amount]), account_id: params[:source_account])
       @destination_transfer = BalanceTransfer.new(amount: params[:amount], account_id: params[:destination_account])
