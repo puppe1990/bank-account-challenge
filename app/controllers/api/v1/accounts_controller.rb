@@ -1,5 +1,6 @@
 class Api::V1::AccountsController < ApplicationController
-  before_action :set_account, only: [:show, :update, :destroy]
+  before_action :set_account, only: [:show, :update, :destroy, :check_balance, :transfer_money]
+  before_action :tranfer_money_params, only: [:transfer_money]
 
   # GET /accounts
   def index
@@ -38,10 +39,42 @@ class Api::V1::AccountsController < ApplicationController
     @account.destroy
   end
 
+  def check_balance
+    calculate_balance
+    render json: @balance
+  end
+
+  def transfer_money
+    # @account_id = params[:source_account]
+    # byebug
+    calculate_balance
+    
+    if @balance.positive?
+      @source_transfer = BalanceTransfer.new(amount: -(params[:amount]), account_id: params[:source_account])
+      @destination_transfer = BalanceTransfer.new(amount: params[:amount], account_id: params[:destination_account])
+      if @source_transfer.save && @destination_transfer.save
+        render json: { 'transfer': true }
+      else
+        render json: { 'transfer': false }, status: :unprocessable_entity
+      end
+    else
+      render json: { 'transfer': false }, status: :unprocessable_entity
+    end
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_account
       @account = Account.find(params[:id])
+    end
+
+    def tranfer_money_params
+      params.permit(:id, :amount, :source_account, :destination_account)
+    end
+
+    def calculate_balance
+      balance_transfers = BalanceTransfer.where(account_id: @account)
+      @balance = balance_transfers.map(&:amount).sum
     end
 
     # Only allow a trusted parameter "white list" through.

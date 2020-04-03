@@ -1,7 +1,5 @@
 class Api::V1::BalanceTransfersController < ApplicationController
   before_action :set_balance_transfer, only: [:show, :update, :destroy]
-  before_action :tranfer_money_params, only: [:transfer_money]
-  before_action :check_balance_params, only: [:check_balance]
 
   # GET /balance_transfers
   def index
@@ -42,22 +40,6 @@ class Api::V1::BalanceTransfersController < ApplicationController
     @balance_transfer.destroy
   end
 
-  def transfer_money
-    @account_id = params[:source_account]
-    calculate_balance
-    if @balance.positive?
-      BalanceTransfer.create(amount: -(params[:amount]), account_id: params[:source_account])
-      BalanceTransfer.create(amount: params[:amount], account_id: params[:destination_account])
-    else
-      render json: @balance_transfer.errors, status: :unprocessable_entity
-    end
-  end
-
-  def check_balance
-    @account_id = params[:account_id]
-    calculate_balance
-  end
-
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_balance_transfer
@@ -68,17 +50,4 @@ class Api::V1::BalanceTransfersController < ApplicationController
     def balance_transfer_params
       params.require(:balance_transfer).permit(:amount, :account_id)
     end    
-
-    def tranfer_money_params
-      params.require(:balance_transfer).permit(:amount, :source_account, :destination_account)
-    end    
-
-    def check_balance_params
-      params.require(:balance_transfer).permit(:account_id)
-    end
-
-    def calculate_balance
-      balance_transfers = BalanceTransfer.where(account_id: @account_id)
-      @balance = balance_transfers.map(&:amount).sum
-    end
 end
